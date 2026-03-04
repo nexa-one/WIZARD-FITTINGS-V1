@@ -45,7 +45,7 @@ export function generateLoftPath(
   inlet: Profile,
   outlet: Profile,
   length: number,
-  _alignment: string
+  _alignment: string // reserved for future offset/centerline alignment logic
 ): THREE.BufferGeometry {
   const inletShape = profileToShape(inlet);
   
