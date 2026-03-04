@@ -10,6 +10,9 @@ export class PluginRegistry {
   private plugins: Map<string, HVACPlugin> = new Map();
 
   register(plugin: HVACPlugin): void {
+    if (this.plugins.has(plugin.id)) {
+      console.warn(`[PluginRegistry] Plugin "${plugin.id}" is already registered and will be overwritten.`);
+    }
     this.plugins.set(plugin.id, plugin);
     plugin.install(this);
   }
