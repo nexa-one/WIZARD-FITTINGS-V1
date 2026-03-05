@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: manufacturing_engine
+Version: 2.0.0
+Summary: WIZARD-FITTINGS-V1 Phase 2 – Manufacturing Engine for HVAC ductwork fabrication
+Requires-Python: >=3.9
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
