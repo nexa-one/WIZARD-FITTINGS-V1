@@ -170,7 +170,7 @@ export class IsometricSketchRenderer {
     const ctx = this.ctx;
     const shadeMap = {
       top:    theme.face_top,
-      front:  theme.face_right,
+      front:  theme.face_left,
       right:  theme.face_right,
       left:   theme.face_left,
       back:   theme.face_left,

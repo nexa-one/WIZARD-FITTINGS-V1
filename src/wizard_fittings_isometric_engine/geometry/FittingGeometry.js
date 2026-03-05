@@ -352,7 +352,7 @@ function wye(dims) {
     // Left branch face
     edge(8,9,"visible"), edge(9,10,"visible"), edge(10,11,"visible"), edge(11,8,"visible"),
     // Body top
-    edge(3,7,"visible"), edge(3,11,"visible"),
+    edge(2,7,"visible"), edge(3,11,"visible"),
     // Body sides
     edge(0,8,"hidden"), edge(1,4,"visible"),
   ];

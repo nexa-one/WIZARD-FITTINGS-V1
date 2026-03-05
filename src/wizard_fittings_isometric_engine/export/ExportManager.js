@@ -175,7 +175,9 @@ export class ExportManager {
     const a    = document.createElement("a");
     a.href     = dataURL;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   }
 
   _downloadBuffer(buffer, filename, mimeType) {
@@ -184,7 +186,9 @@ export class ExportManager {
     const a    = document.createElement("a");
     a.href     = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 }
