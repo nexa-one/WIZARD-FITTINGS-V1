@@ -26,6 +26,8 @@ class FittingType(Enum):
     WYE = "wye"
     CAP = "cap"
     OFFSET = "offset"
+    SPECIAL = "special"
+    SUPPORT = "support"
 
 
 class FittingElement(ABC):
