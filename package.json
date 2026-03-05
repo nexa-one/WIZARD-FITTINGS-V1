@@ -1,0 +1,12 @@
+{
+  "name": "wizard-fittings-v1",
+  "version": "1.0.0",
+  "description": "WIZARD FITTINGS – HVAC/SMACNA isometric sketch engine",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/engine.test.js",
+    "demo": "npx serve . -l 8080"
+  },
+  "keywords": ["hvac", "smacna", "isometric", "cad", "fittings"],
+  "license": "MIT"
+}
