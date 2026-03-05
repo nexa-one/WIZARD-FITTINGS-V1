@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: wizard-fittings
+Version: 0.1.0
+Summary: Industrial geometric engine for SMACNA HVAC duct fittings
+License: MIT
+Keywords: hvac,smacna,ductwork,fittings,geometric-engine
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Topic :: Scientific/Engineering
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+Requires-Dist: pytest>=7; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+
+# WIZARD-FITTINGS-V1
+Hvac fittings smacna
