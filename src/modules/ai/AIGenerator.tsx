@@ -58,7 +58,7 @@ function parsePrompt(text: string): ParsedFitting {
     detected.push('straight duct');
   }
 
-  if (lower.includes('round') || lower.includes('circular') || lower.includes('redondo') || lower.includes('circular')) {
+  if (lower.includes('round') || lower.includes('circular') || lower.includes('redondo')) {
     shapeType = ShapeType.ROUND;
     detected.push('round');
   } else if (lower.includes('oval')) {
