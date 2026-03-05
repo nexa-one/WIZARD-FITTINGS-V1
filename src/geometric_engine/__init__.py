@@ -15,6 +15,7 @@ from geometric_engine.models import (
 from geometric_engine.ai_module import VisionAIModelGenerator
 from geometric_engine.parametric_module import ManualParametricInputSystem
 from geometric_engine.wizard_module import SMACNAGuidedWizard
+from geometric_engine.training import TrainingExample, TrainingCorpus, ModelTrainer
 
 __version__ = "1.0.0"
 __all__ = [
@@ -28,4 +29,7 @@ __all__ = [
     "VisionAIModelGenerator",
     "ManualParametricInputSystem",
     "SMACNAGuidedWizard",
+    "TrainingExample",
+    "TrainingCorpus",
+    "ModelTrainer",
 ]

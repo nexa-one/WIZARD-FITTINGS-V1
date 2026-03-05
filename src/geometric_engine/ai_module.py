@@ -11,6 +11,16 @@ dependencies*), the NL parser is a deterministic rule-based extractor and the
 image handler works from structured metadata dicts.  In production, these
 stubs would be replaced by calls to a real vision / LLM service while keeping
 the same public interface.
+
+Training integration
+--------------------
+Learned keyword mappings produced by
+:class:`~geometric_engine.training.ModelTrainer` can be supplied via the
+``learned_keywords`` constructor parameter.  Learned keywords extend — and
+take precedence over — the built-in keyword maps, allowing the AI to improve
+from operator feedback without any external ML library.
+
+See :mod:`geometric_engine.training` for the full training workflow.
 """
 
 from __future__ import annotations
@@ -208,6 +218,21 @@ class VisionAIModelGenerator:
     - SMACNA-compliant gauge selection
     - Validation report
     - Confidence score (0–1)
+
+    Training integration
+    --------------------
+    Pass the ``learned_keywords`` dict produced by
+    :class:`~geometric_engine.training.ModelTrainer` to augment the built-in
+    keyword maps with operator-supplied corrections::
+
+        trainer = ModelTrainer()
+        trainer.fit(my_corpus)
+        ai = VisionAIModelGenerator(learned_keywords=trainer.learned_keywords)
+
+    Use :meth:`record_feedback` to create a labeled
+    :class:`~geometric_engine.training.TrainingExample` from a live
+    prediction and its correction, ready to add to a
+    :class:`~geometric_engine.training.TrainingCorpus`.
     """
 
     def __init__(
@@ -215,9 +240,32 @@ class VisionAIModelGenerator:
         *,
         auto_gauge_selection: bool = AUTO_GAUGE_SELECTION,
         smacna_enforcement: bool = SMACNA_ENFORCEMENT,
+        learned_keywords: Optional[Dict[str, Dict[str, str]]] = None,
     ) -> None:
         self.auto_gauge_selection = auto_gauge_selection
         self.smacna_enforcement = smacna_enforcement
+
+        # Merge learned keywords into the module-level maps.
+        # Learned keywords take priority (override built-ins for the same
+        # token) so that operator corrections are respected.
+        extra = learned_keywords or {}
+
+        self._fitting_keywords: Dict[str, FittingType] = {
+            **_FITTING_TYPE_KEYWORDS,
+            **{k: FittingType(v) for k, v in extra.get("fitting_type", {}).items()},
+        }
+        self._connection_keywords: Dict[str, ConnectionType] = {
+            **_CONNECTION_KEYWORDS,
+            **{k: ConnectionType(v) for k, v in extra.get("connection_type", {}).items()},
+        }
+        self._pressure_keywords: Dict[str, PressureClass] = {
+            **_PRESSURE_KEYWORDS,
+            **{k: PressureClass(v) for k, v in extra.get("pressure_class", {}).items()},
+        }
+        self._insulation_keywords: Dict[str, InsulationType] = {
+            **_INSULATION_KEYWORDS,
+            **{k: InsulationType(v) for k, v in extra.get("insulation_type", {}).items()},
+        }
 
     # ------------------------------------------------------------------
     # Public API
@@ -243,7 +291,7 @@ class VisionAIModelGenerator:
         if not description or not description.strip():
             raise ValueError("description must not be empty")
 
-        fitting_type, base_confidence = _extract_fitting_type(description)
+        fitting_type, base_confidence = self._extract_fitting_type(description)
         if fitting_type is None:
             fitting_type = FittingType.STRAIGHT
             base_confidence = 0.4
@@ -266,9 +314,9 @@ class VisionAIModelGenerator:
             width=width,
             height=height,
             length=_extract_dimension(description, "length"),
-            connection_type=_extract_connection(description) or ConnectionType.RAW,
-            pressure_class=_extract_pressure(description) or PressureClass.WG_2,
-            insulation_type=_extract_insulation(description) or InsulationType.SINGLE_WALL,
+            connection_type=self._extract_connection(description) or ConnectionType.RAW,
+            pressure_class=self._extract_pressure(description) or PressureClass.WG_2,
+            insulation_type=self._extract_insulation(description) or InsulationType.SINGLE_WALL,
         )
 
         return self._build_result(params, base_confidence)
@@ -337,9 +385,86 @@ class VisionAIModelGenerator:
 
         return self._build_result(params, base_confidence)
 
+    def record_feedback(
+        self,
+        *,
+        correct_fitting_type: str,
+        input_text: Optional[str] = None,
+        image_metadata: Optional[Dict[str, Any]] = None,
+        correct_connection_type: Optional[str] = None,
+        correct_pressure_class: Optional[str] = None,
+        correct_insulation_type: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> "training.TrainingExample":
+        """
+        Create a labeled :class:`~geometric_engine.training.TrainingExample`
+        from a live prediction and its operator correction.
+
+        The returned example is ready to be added to a
+        :class:`~geometric_engine.training.TrainingCorpus` for subsequent
+        training.
+
+        Parameters
+        ----------
+        correct_fitting_type:
+            The ground-truth fitting type (e.g. ``"elbow_90"``).
+        input_text:
+            The NL description that was given to the AI.
+        image_metadata:
+            The image-metadata dict that was given to the AI.
+        correct_connection_type, correct_pressure_class, correct_insulation_type:
+            Optional additional ground-truth labels.
+        notes:
+            Free-text annotation (e.g. language of the input, source system).
+
+        Returns
+        -------
+        TrainingExample
+        """
+        from geometric_engine import training
+
+        return training.TrainingExample(
+            correct_fitting_type=correct_fitting_type,
+            input_text=input_text,
+            image_metadata=image_metadata,
+            correct_connection_type=correct_connection_type,
+            correct_pressure_class=correct_pressure_class,
+            correct_insulation_type=correct_insulation_type,
+            notes=notes,
+        )
+
     # ------------------------------------------------------------------
-    # Internal helpers
+    # Internal helpers (instance-level, respect learned keywords)
     # ------------------------------------------------------------------
+
+    def _extract_fitting_type(self, text: str) -> Tuple[Optional[FittingType], float]:
+        """Return (fitting_type, confidence) using instance keyword map."""
+        lower = text.lower()
+        for keyword, ft in self._fitting_keywords.items():
+            if keyword in lower:
+                return ft, 0.85
+        return None, 0.0
+
+    def _extract_connection(self, text: str) -> Optional[ConnectionType]:
+        lower = text.lower()
+        for kw, ct in self._connection_keywords.items():
+            if kw in lower:
+                return ct
+        return None
+
+    def _extract_insulation(self, text: str) -> Optional[InsulationType]:
+        lower = text.lower()
+        for kw, it in self._insulation_keywords.items():
+            if kw in lower:
+                return it
+        return None
+
+    def _extract_pressure(self, text: str) -> Optional[PressureClass]:
+        lower = text.lower()
+        for kw, pc in self._pressure_keywords.items():
+            if kw in lower:
+                return pc
+        return None
 
     def _build_result(
         self, params: FittingParameters, base_confidence: float
