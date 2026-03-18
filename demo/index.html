@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WIZARD FITTINGS – Isometric Sketch Engine v1.0.0</title>
+  <link rel="stylesheet" href="../src/styles/wizard-sketch.css" />
+  <style>
+    /* inline tweaks for demo page */
+    html, body { height: 100%; overflow: hidden; }
+    .wf-layout  { height: calc(100vh - 40px - 34px); }
+  </style>
+</head>
+<body class="theme-light_technical">
+
+<!-- ── Top toolbar ─────────────────────────────────────────────────────── -->
+<div class="wf-toolbar">
+  <span class="wf-toolbar__logo">⬡ WIZARD FITTINGS · ISOMETRIC ENGINE v1.0.0</span>
+  <div class="wf-toolbar__spacer"></div>
+
+  <!-- Mode toggle -->
+  <button id="btnSketch" class="wf-mode-btn active" title="Sketch Isometric (default)">SKETCH</button>
+  <button id="btn3D"     class="wf-mode-btn"        title="3D Visual (WebGL)">3D VIEW</button>
+
+  <!-- Theme -->
+  <select id="themeSelect" title="Visual theme">
+    <option value="light_technical">LIGHT TECHNICAL</option>
+    <option value="dark_professional">DARK PROFESSIONAL</option>
+    <option value="blueprint">BLUEPRINT</option>
+  </select>
+
+  <!-- Reset view -->
+  <button id="btnReset" title="Reset viewport">⌖ RESET VIEW</button>
+</div>
+
+<!-- ── Main layout ──────────────────────────────────────────────────────── -->
+<div class="wf-layout">
+
+  <!-- Left param panel -->
+  <aside class="wf-params" id="paramPanel">
+    <h3>Fitting Type</h3>
+    <div class="wf-fitting-tabs" id="typeTabs">
+      <button data-type="elbow_90"   class="active">90° ELBOW</button>
+      <button data-type="elbow_45">45° ELBOW</button>
+      <button data-type="tee">TEE</button>
+      <button data-type="reducer">REDUCER</button>
+      <button data-type="offset">OFFSET</button>
+      <button data-type="cap">CAP</button>
+      <button data-type="wye">WYE</button>
+      <button data-type="transition">TRANSITION</button>
+    </div>
+
+    <h3>Dimensions</h3>
+
+    <div class="wf-param-row">
+      <label>WIDTH (mm)</label>
+      <input type="number" id="pWidth"  value="300" min="50" max="2000" step="5" />
+    </div>
+    <div class="wf-param-row">
+      <label>HEIGHT (mm)</label>
+      <input type="number" id="pHeight" value="200" min="50" max="2000" step="5" />
+    </div>
+    <div class="wf-param-row">
+      <label>DEPTH (mm)</label>
+      <input type="number" id="pDepth"  value="300" min="50" max="2000" step="5" />
+    </div>
+    <div class="wf-param-row">
+      <label>CENTERLINE RADIUS (mm)</label>
+      <input type="number" id="pRadius" value="150" min="25" max="1000" step="5" />
+    </div>
+    <div class="wf-param-row">
+      <label>ANGLE (°)</label>
+      <input type="number" id="pAngle"  value="90"  min="15" max="90"  step="5" />
+    </div>
+    <div class="wf-param-row">
+      <label>WALL THICKNESS (mm)</label>
+      <input type="number" id="pThick"  value="0.55" min="0.1" max="5" step="0.05" />
+    </div>
+
+    <h3 style="margin-top:14px">Options</h3>
+    <div class="wf-param-row">
+      <label><input type="checkbox" id="chkDims"   checked /> Show Dimensions</label>
+    </div>
+    <div class="wf-param-row">
+      <label><input type="checkbox" id="chkHidden" checked /> Show Hidden Lines</label>
+    </div>
+    <div class="wf-param-row">
+      <label><input type="checkbox" id="chkGrid"   checked /> Show Grid</label>
+    </div>
+
+    <h3 style="margin-top:14px">Metadata</h3>
+    <div class="wf-param-row">
+      <label>REQUESTED BY</label>
+      <input type="text" id="mReqBy"   value="John Smith"     style="font-family:inherit;font-size:11px;padding:3px 6px;border:1px solid #CCC;" />
+    </div>
+    <div class="wf-param-row">
+      <label>PREPARED BY</label>
+      <input type="text" id="mPrepBy"  value="Wizard Fittings AI" style="font-family:inherit;font-size:11px;padding:3px 6px;border:1px solid #CCC;" />
+    </div>
+    <div class="wf-param-row">
+      <label>PROJECT</label>
+      <input type="text" id="mProject" value="HVAC Tower A – Level 3" style="font-family:inherit;font-size:11px;padding:3px 6px;border:1px solid #CCC;" />
+    </div>
+    <div class="wf-param-row">
+      <label>URGENCY</label>
+      <select id="mUrgency" style="font-family:inherit;font-size:11px;padding:3px 6px;border:1px solid #CCC;">
+        <option>LOW</option><option>MEDIUM</option>
+        <option selected>HIGH</option><option>CRITICAL</option>
+      </select>
+    </div>
+    <div class="wf-param-row">
+      <label>WORK ORDER</label>
+      <input type="text" id="mWorkOrder" value="WO-2026-0312" style="font-family:inherit;font-size:11px;padding:3px 6px;border:1px solid #CCC;" />
+    </div>
+    <div class="wf-param-row">
+      <label>REVISION</label>
+      <input type="text" id="mRevision" value="Rev A" style="font-family:inherit;font-size:11px;padding:3px 6px;border:1px solid #CCC;" />
+    </div>
+  </aside>
+
+  <!-- Main viewport -->
+  <div class="wf-viewport" id="viewport">
+    <canvas id="mainCanvas"></canvas>
+
+    <!-- Coordinate cube (top-right) -->
+    <div class="wf-cube">
+      <canvas id="cubeCanvas"></canvas>
+    </div>
+
+    <!-- Zoom buttons -->
+    <div class="wf-zoom-controls">
+      <button id="btnZoomIn"  title="Zoom in (+)">+</button>
+      <button id="btnZoomOut" title="Zoom out (-)">−</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Bottom toolbar ──────────────────────────────────────────────────── -->
+<div class="wf-bottom-toolbar">
+  <span id="statusMsg">Ready · Scroll to zoom · Middle-click to pan · Right-click to rotate</span>
+  <div class="wf-export-group">
+    <select id="exportFormat">
+      <option value="png">PNG</option>
+      <option value="pdf">PDF</option>
+      <option value="stl">STL</option>
+      <option value="step">STEP</option>
+    </select>
+    <button id="btnExport">⬇ EXPORT</button>
+  </div>
+</div>
+
+<!-- ── Script ──────────────────────────────────────────────────────────── -->
+<script type="module">
+import { WizardFittingsEngine } from "../src/wizard_fittings_isometric_engine/index.js";
+
+// ── Canvas sizing ─────────────────────────────────────────────────────────
+const viewport   = document.getElementById("viewport");
+const mainCanvas = document.getElementById("mainCanvas");
+const cubeCanvas = document.getElementById("cubeCanvas");
+
+function resizeCanvas() {
+  mainCanvas.width  = viewport.clientWidth;
+  mainCanvas.height = viewport.clientHeight;
+}
+window.addEventListener("resize", () => {
+  resizeCanvas();
+  if (currentFitting) engine.render(currentFitting);
+});
+resizeCanvas();
+
+// ── Engine init ───────────────────────────────────────────────────────────
+const engine = new WizardFittingsEngine({
+  canvas:     mainCanvas,
+  cubeCanvas: cubeCanvas,
+});
+
+// ── Current fitting state ─────────────────────────────────────────────────
+let currentType = "elbow_90";
+let currentFitting = null;
+
+function buildFitting() {
+  const W = +document.getElementById("pWidth").value;
+  const H = +document.getElementById("pHeight").value;
+  const D = +document.getElementById("pDepth").value;
+  const R = +document.getElementById("pRadius").value;
+  const A = +document.getElementById("pAngle").value;
+  const T = +document.getElementById("pThick").value;
+
+  return {
+    id:       `${currentType.toUpperCase()}-${W}x${H}`,
+    type:     currentType,
+    name:     currentType.replace(/_/g, " ").toUpperCase() + ` SMACNA`,
+    standard: "SMACNA HVAC Duct Construction Standards 3rd Ed.",
+    material: "Galvanized Steel 26ga",
+    dimensions: {
+      width:             W,
+      height:            H,
+      depth:             D,
+      inlet_width:       W,
+      inlet_height:      H,
+      outlet_width:      W,
+      outlet_height:     H,
+      angle_deg:         A,
+      centerline_radius: R,
+      wall_thickness:    T,
+    },
+    metadata: {
+      requested_by: document.getElementById("mReqBy").value,
+      prepared_by:  document.getElementById("mPrepBy").value,
+      created_at:   new Date().toISOString(),
+      urgency:      document.getElementById("mUrgency").value,
+      work_order:   document.getElementById("mWorkOrder").value,
+      project_name: document.getElementById("mProject").value,
+      revision:     document.getElementById("mRevision").value,
+    },
+    render_options: {
+      mode:        engine.currentMode,
+      theme:       document.getElementById("themeSelect").value,
+      show_dims:   document.getElementById("chkDims").checked,
+      show_hidden: document.getElementById("chkHidden").checked,
+      show_grid:   document.getElementById("chkGrid").checked,
+    },
+  };
+}
+
+function rerender() {
+  currentFitting = buildFitting();
+  engine.render(currentFitting);
+}
+
+// ── Fitting type tabs ─────────────────────────────────────────────────────
+document.getElementById("typeTabs").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-type]");
+  if (!btn) return;
+  document.querySelectorAll("#typeTabs button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentType = btn.dataset.type;
+  rerender();
+});
+
+// ── Parameter inputs ──────────────────────────────────────────────────────
+const paramInputs = [
+  "pWidth","pHeight","pDepth","pRadius","pAngle","pThick",
+  "chkDims","chkHidden","chkGrid",
+  "mReqBy","mPrepBy","mProject","mUrgency","mWorkOrder","mRevision",
+];
+let debounceTimer;
+paramInputs.forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(rerender, 150);
+  });
+});
+
+// ── Mode toggle ───────────────────────────────────────────────────────────
+document.getElementById("btnSketch").addEventListener("click", () => {
+  engine.setMode("sketch_isometric");
+  document.getElementById("btnSketch").classList.add("active");
+  document.getElementById("btn3D").classList.remove("active");
+  rerender();
+});
+document.getElementById("btn3D").addEventListener("click", () => {
+  // 3D visual mode – show placeholder message on canvas
+  engine.setMode("3d_visual");
+  document.getElementById("btn3D").classList.add("active");
+  document.getElementById("btnSketch").classList.remove("active");
+
+  const ctx = mainCanvas.getContext("2d");
+  ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+  ctx.fillStyle = "#1A1A2E";
+  ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+  ctx.fillStyle = "#4FC3F7";
+  ctx.font = "bold 18px Courier New, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("3D VIEW (WebGL renderer – future expansion)", mainCanvas.width/2, mainCanvas.height/2 - 14);
+  ctx.font = "13px Courier New, monospace";
+  ctx.fillStyle = "#888";
+  ctx.fillText("Switch back to SKETCH mode for the full isometric sketch engine.", mainCanvas.width/2, mainCanvas.height/2 + 18);
+});
+
+// ── Theme ─────────────────────────────────────────────────────────────────
+document.getElementById("themeSelect").addEventListener("change", e => {
+  const theme = e.target.value;
+  engine.setTheme(theme);
+  // Update body class for CSS theming
+  document.body.className = `theme-${theme}`;
+  rerender();
+});
+
+// ── Reset view ────────────────────────────────────────────────────────────
+document.getElementById("btnReset").addEventListener("click", () => {
+  engine.resetView();
+  rerender();
+});
+
+// ── Zoom buttons ──────────────────────────────────────────────────────────
+document.getElementById("btnZoomIn").addEventListener("click", () => {
+  engine.viewport._applyZoom(0.1);
+  rerender();
+});
+document.getElementById("btnZoomOut").addEventListener("click", () => {
+  engine.viewport._applyZoom(-0.1);
+  rerender();
+});
+
+// ── Export ────────────────────────────────────────────────────────────────
+document.getElementById("btnExport").addEventListener("click", () => {
+  const fmt  = document.getElementById("exportFormat").value;
+  const name = `${currentFitting?.id || "fitting"}.${fmt}`;
+  try {
+    engine.export(fmt, { filename: name });
+    document.getElementById("statusMsg").textContent = `Exported: ${name}`;
+  } catch (err) {
+    document.getElementById("statusMsg").textContent = `Export error: ${err.message}`;
+  }
+});
+
+// ── Initial render ────────────────────────────────────────────────────────
+rerender();
+</script>
+</body>
+</html>
