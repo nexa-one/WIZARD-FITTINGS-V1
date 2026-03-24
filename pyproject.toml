@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wizard-fittings"
+version = "2.0.0"
+description = "WIZARD-FITTINGS-V1 – HVAC/SMACNA industrial platform: geometric engine, CNC flat-metal module, manufacturing engine"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["hvac", "smacna", "ductwork", "fittings", "geometric-engine", "cnc", "manufacturing"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests/geometric_engine",
+    "tests/cnc_module",
+    "tests/manufacturing_engine",
+]
+addopts = "--tb=short"
