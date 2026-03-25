@@ -10,8 +10,8 @@ import {
 import { processPSD } from '../engine';
 
 interface HVACStore {
-  activeModule: 'ai' | 'parametric' | 'wizard';
-  setActiveModule: (m: 'ai' | 'parametric' | 'wizard') => void;
+  activeModule: 'ai' | 'parametric' | 'wizard' | 'calculator';
+  setActiveModule: (m: 'ai' | 'parametric' | 'wizard' | 'calculator') => void;
 
   currentPSD: Partial<ParametricSolidDefinition> | null;
   setCurrentPSD: (psd: Partial<ParametricSolidDefinition>) => void;

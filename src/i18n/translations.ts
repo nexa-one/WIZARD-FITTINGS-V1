@@ -11,6 +11,7 @@ export interface Translations {
   tabAI: string;
   tabParametric: string;
   tabWizard: string;
+  tabCalculator: string;
 
   // View mode labels
   view3D: string;
@@ -164,6 +165,7 @@ export const en: Translations = {
   tabAI: '🤖 AI',
   tabParametric: '⚙️ Build',
   tabWizard: '🧙 Wizard',
+  tabCalculator: '📐 Offset',
 
   view3D: '3D',
   viewCNC: 'CNC',
@@ -305,6 +307,7 @@ export const es: Translations = {
   tabAI: '🤖 IA',
   tabParametric: '⚙️ Construir',
   tabWizard: '🧙 Asistente',
+  tabCalculator: '📐 Offset',
 
   view3D: '3D',
   viewCNC: 'CNC',
