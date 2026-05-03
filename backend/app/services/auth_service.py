@@ -80,7 +80,7 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> TokenRes
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
     user_id = payload.get("sub")
-    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+    result = await db.execute(select(User).where(User.id == str(uuid.UUID(user_id))))
     user = result.scalar_one_or_none()
 
     if not user or not user.is_active:

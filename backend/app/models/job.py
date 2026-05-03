@@ -1,8 +1,8 @@
 import uuid
 from sqlalchemy import String, Boolean, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
 from app.db.base import Base
+from app.db.types import UUIDType
 from app.models.base_model import UUIDMixin, TimestampMixin
 
 
@@ -10,7 +10,7 @@ class Job(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "jobs"
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+        UUIDType(), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     job_number: Mapped[str | None] = mapped_column(String(100), index=True)
@@ -31,7 +31,7 @@ class JobArea(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "job_areas"
 
     job_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True
+        UUIDType(), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)

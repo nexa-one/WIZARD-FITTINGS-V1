@@ -10,6 +10,12 @@ from app.schemas.common import PaginatedResponse
 from app.engines.geometry_engine import compute_fitting_geometry
 
 
+def _uuid_str(val) -> str:
+    if val is None:
+        return None
+    return str(uuid.UUID(str(val)))
+
+
 async def create_fitting(db: AsyncSession, data: FittingCreate, current_user: User) -> Fitting:
     dims = data.dimensions.model_dump(exclude_none=True)
     geometry = compute_fitting_geometry(data.fitting_type.value, dims)
@@ -33,9 +39,12 @@ async def create_fitting(db: AsyncSession, data: FittingCreate, current_user: Us
     return fitting
 
 
-async def get_fitting(db: AsyncSession, fitting_id: str, tenant_id: uuid.UUID) -> Fitting:
+async def get_fitting(db: AsyncSession, fitting_id: str, tenant_id) -> Fitting:
     result = await db.execute(
-        select(Fitting).where(Fitting.id == uuid.UUID(fitting_id), Fitting.tenant_id == tenant_id)
+        select(Fitting).where(
+            Fitting.id == _uuid_str(fitting_id),
+            Fitting.tenant_id == str(tenant_id),
+        )
     )
     fitting = result.scalar_one_or_none()
     if not fitting:
@@ -48,11 +57,12 @@ async def update_fitting(db: AsyncSession, fitting_id: str, data: FittingUpdate,
     update_data = data.model_dump(exclude_none=True)
 
     if "dimensions" in update_data:
-        dims = update_data["dimensions"]
+        dims = update_data.pop("dimensions")
         if isinstance(dims, dict):
             fitting.dimensions = {**fitting.dimensions, **dims}
-            fitting.geometry_data = compute_fitting_geometry(fitting.fitting_type.value, fitting.dimensions)
-        del update_data["dimensions"]
+            fitting.geometry_data = compute_fitting_geometry(
+                fitting.fitting_type.value, fitting.dimensions
+            )
 
     for field, value in update_data.items():
         setattr(fitting, field, value)
@@ -63,12 +73,12 @@ async def update_fitting(db: AsyncSession, fitting_id: str, data: FittingUpdate,
 
 async def list_fittings(
     db: AsyncSession,
-    tenant_id: uuid.UUID,
+    tenant_id,
     page: int = 1,
     page_size: int = 20,
     fitting_type: str = None,
 ) -> PaginatedResponse:
-    query = select(Fitting).where(Fitting.tenant_id == tenant_id)
+    query = select(Fitting).where(Fitting.tenant_id == str(tenant_id))
     if fitting_type:
         query = query.where(Fitting.fitting_type == fitting_type)
 

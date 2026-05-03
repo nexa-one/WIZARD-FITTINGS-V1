@@ -1,9 +1,9 @@
 import uuid
 import enum
-from sqlalchemy import String, Boolean, ForeignKey, Numeric, Text, Enum as SAEnum
+from sqlalchemy import String, Boolean, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.db.base import Base
+from app.db.types import UUIDType, JSONBType, PortableEnum
 from app.models.base_model import UUIDMixin, TimestampMixin
 
 
@@ -39,21 +39,18 @@ class Fitting(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "fittings"
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+        UUIDType(), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_by: Mapped[uuid.UUID] = mapped_column(UUIDType(), ForeignKey("users.id"), nullable=False)
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    fitting_type: Mapped[FittingType] = mapped_column(SAEnum(FittingType), nullable=False)
-    material: Mapped[MaterialType] = mapped_column(SAEnum(MaterialType), default=MaterialType.GALVANIZED)
-    connection_type: Mapped[ConnectionType] = mapped_column(SAEnum(ConnectionType), default=ConnectionType.SLIP)
+    fitting_type: Mapped[FittingType] = mapped_column(PortableEnum(FittingType), nullable=False)
+    material: Mapped[MaterialType] = mapped_column(PortableEnum(MaterialType), default=MaterialType.GALVANIZED)
+    connection_type: Mapped[ConnectionType] = mapped_column(PortableEnum(ConnectionType), default=ConnectionType.SLIP)
 
-    # Dimensions stored as structured JSON
-    dimensions: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
-    # 3D geometry data (Three.js compatible)
-    geometry_data: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
-    # Engineering validation results
-    engineering_data: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    dimensions: Mapped[dict] = mapped_column(JSONBType(), default=dict, nullable=False)
+    geometry_data: Mapped[dict] = mapped_column(JSONBType(), default=dict, nullable=False)
+    engineering_data: Mapped[dict] = mapped_column(JSONBType(), default=dict, nullable=False)
 
     gauge: Mapped[str | None] = mapped_column(String(20))
     description: Mapped[str | None] = mapped_column(Text)
@@ -71,15 +68,15 @@ class Fitting(UUIDMixin, TimestampMixin, Base):
 class FittingRequest(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "fitting_requests"
 
-    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
-    fitting_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("fittings.id"), nullable=True)
-    requested_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType(), ForeignKey("tenants.id"), nullable=False)
+    fitting_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType(), ForeignKey("fittings.id"), nullable=True)
+    requested_by: Mapped[uuid.UUID] = mapped_column(UUIDType(), ForeignKey("users.id"), nullable=False)
 
     input_text: Mapped[str] = mapped_column(Text, nullable=False)
-    parsed_data: Mapped[dict] = mapped_column(JSONB, default=dict)
-    suggested_data: Mapped[dict] = mapped_column(JSONB, default=dict)
-    missing_fields: Mapped[list] = mapped_column(JSONB, default=list)
-    validation_result: Mapped[dict] = mapped_column(JSONB, default=dict)
+    parsed_data: Mapped[dict] = mapped_column(JSONBType(), default=dict)
+    suggested_data: Mapped[dict] = mapped_column(JSONBType(), default=dict)
+    missing_fields: Mapped[list] = mapped_column(JSONBType(), default=list)
+    validation_result: Mapped[dict] = mapped_column(JSONBType(), default=dict)
     status: Mapped[str] = mapped_column(String(50), default="pending")
 
     fitting: Mapped["Fitting | None"] = relationship("Fitting", back_populates="requests")

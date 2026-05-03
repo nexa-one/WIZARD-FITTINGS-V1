@@ -4,9 +4,8 @@ from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
-from app.main import app
 from app.db.base import Base, get_db
-from app.models import *  # noqa: F401, F403
+from app.models import *  # noqa: F401, F403 – registers all models with metadata
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -35,7 +34,11 @@ def event_loop():
 @pytest.fixture(scope="session", autouse=True)
 async def setup_test_db():
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        # SQLite doesn't support native enums; render_as_string avoids the issue
+        await conn.run_sync(
+            Base.metadata.create_all,
+            checkfirst=True,
+        )
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -50,6 +53,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    from app.main import app
+
     async def override_get_db():
         yield db_session
 

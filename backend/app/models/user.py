@@ -1,9 +1,9 @@
 import uuid
 import enum
-from sqlalchemy import String, Boolean, ForeignKey, Enum as SAEnum
+from sqlalchemy import String, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
 from app.db.base import Base
+from app.db.types import UUIDType, PortableEnum
 from app.models.base_model import UUIDMixin, TimestampMixin
 
 
@@ -20,12 +20,12 @@ class User(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "users"
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+        UUIDType(), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), nullable=False, default=UserRole.VIEWER)
+    role: Mapped[UserRole] = mapped_column(PortableEnum(UserRole), nullable=False, default=UserRole.VIEWER)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     phone: Mapped[str | None] = mapped_column(String(50))

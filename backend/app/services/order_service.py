@@ -2,26 +2,35 @@ import uuid
 import math
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, or_, cast, String
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from app.models.order import Order, OrderItem
 from app.models.user import User
-from app.schemas.order import OrderCreate, OrderUpdate, OrderSearchFilters, OrderResponse
+from app.schemas.order import OrderCreate, OrderUpdate, OrderSearchFilters
 from app.schemas.common import PaginatedResponse
 
 
-async def create_order(db: AsyncSession, data: OrderCreate, current_user: User) -> Order:
-    order_data = data.model_dump(exclude={"items"})
-    if order_data.get("job_id"):
-        order_data["job_id"] = uuid.UUID(order_data["job_id"])
-    if order_data.get("job_area_id"):
-        order_data["job_area_id"] = uuid.UUID(order_data["job_area_id"])
+def _uuid_str(val) -> str:
+    """Normalize a UUID value to string for dialect-portable comparison."""
+    if val is None:
+        return None
+    return str(uuid.UUID(str(val)))
 
+
+async def create_order(db: AsyncSession, data: OrderCreate, current_user: User) -> Order:
     order = Order(
-        **{k: v for k, v in order_data.items() if k not in ("job_id", "job_area_id")},
-        job_id=uuid.UUID(data.job_id) if data.job_id else None,
-        job_area_id=uuid.UUID(data.job_area_id) if data.job_area_id else None,
+        request_number=data.request_number,
+        requester_name=data.requester_name,
+        order_date=data.order_date,
+        urgency=data.urgency,
+        piece_quantity=data.piece_quantity,
+        status=data.status,
+        order_type=data.order_type,
+        notes=data.notes,
+        tags=data.tags,
+        job_id=_uuid_str(data.job_id) if data.job_id else None,
+        job_area_id=_uuid_str(data.job_area_id) if data.job_area_id else None,
         tenant_id=current_user.tenant_id,
         created_by=current_user.id,
         audit_history=[{"action": "created", "user": str(current_user.id)}],
@@ -32,7 +41,7 @@ async def create_order(db: AsyncSession, data: OrderCreate, current_user: User) 
     for item_data in data.items:
         item = OrderItem(
             order_id=order.id,
-            fitting_id=uuid.UUID(item_data.fitting_id) if item_data.fitting_id else None,
+            fitting_id=_uuid_str(item_data.fitting_id) if item_data.fitting_id else None,
             description=item_data.description,
             quantity=item_data.quantity,
             unit=item_data.unit,
@@ -47,11 +56,11 @@ async def create_order(db: AsyncSession, data: OrderCreate, current_user: User) 
     return order
 
 
-async def get_order(db: AsyncSession, order_id: str, tenant_id: uuid.UUID) -> Order:
+async def get_order(db: AsyncSession, order_id: str, tenant_id) -> Order:
     result = await db.execute(
         select(Order)
         .options(selectinload(Order.items))
-        .where(Order.id == uuid.UUID(order_id), Order.tenant_id == tenant_id)
+        .where(Order.id == _uuid_str(order_id), Order.tenant_id == str(tenant_id))
     )
     order = result.scalar_one_or_none()
     if not order:
@@ -80,17 +89,21 @@ async def delete_order(db: AsyncSession, order_id: str, current_user: User) -> N
 async def search_orders(
     db: AsyncSession,
     filters: OrderSearchFilters,
-    tenant_id: uuid.UUID,
+    tenant_id,
 ) -> PaginatedResponse:
-    query = select(Order).options(selectinload(Order.items)).where(Order.tenant_id == tenant_id)
+    query = (
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.tenant_id == str(tenant_id))
+    )
 
     if filters.search:
-        search_term = f"%{filters.search}%"
+        term = f"%{filters.search}%"
         query = query.where(
             or_(
-                Order.request_number.ilike(search_term),
-                Order.requester_name.ilike(search_term),
-                Order.notes.ilike(search_term),
+                Order.request_number.ilike(term),
+                Order.requester_name.ilike(term),
+                Order.notes.ilike(term),
             )
         )
     if filters.status:
@@ -100,9 +113,9 @@ async def search_orders(
     if filters.urgency:
         query = query.where(Order.urgency == filters.urgency)
     if filters.job_id:
-        query = query.where(Order.job_id == uuid.UUID(filters.job_id))
+        query = query.where(Order.job_id == _uuid_str(filters.job_id))
     if filters.created_by:
-        query = query.where(Order.created_by == uuid.UUID(filters.created_by))
+        query = query.where(Order.created_by == _uuid_str(filters.created_by))
     if filters.date_from:
         query = query.where(Order.order_date >= filters.date_from)
     if filters.date_to:
