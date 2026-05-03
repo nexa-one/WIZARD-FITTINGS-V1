@@ -1,0 +1,92 @@
+version: "3.9"
+
+# CFM Fittings Pro – Docker Compose Baseline V1
+# Docker-first development environment
+
+networks:
+  cfm_internal_network:
+    driver: bridge
+    name: cfm_internal_network
+
+volumes:
+  postgres_data:
+    name: cfm_postgres_data
+  cfm_storage:
+    name: cfm_storage
+
+services:
+  # ─── PostgreSQL Database ─────────────────────────────────────────────────────
+  cfm_postgres:
+    image: postgres:16-alpine
+    container_name: cfm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cfm_fittings}
+      POSTGRES_USER: ${POSTGRES_USER:-cfm_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cfm_secure_password_change_in_production}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - cfm_internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cfm_user} -d ${POSTGRES_DB:-cfm_fittings}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ─── FastAPI Backend ──────────────────────────────────────────────────────────
+  cfm_backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: cfm_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: cfm_postgres
+    volumes:
+      - ./backend:/app
+      - cfm_storage:/app/storage
+    ports:
+      - "8000:8000"
+    networks:
+      - cfm_internal_network
+    depends_on:
+      cfm_postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ─── React Frontend ───────────────────────────────────────────────────────────
+  cfm_frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: cfm_frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_APP_NAME: "CFM Fittings Pro"
+      VITE_APP_VERSION: "1.0.0"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - cfm_internal_network
+    depends_on:
+      cfm_backend:
+        condition: service_healthy
